@@ -3,13 +3,12 @@
   const context = canvas.getContext('2d');
   if (!context) return;
 
-  const button = document.querySelector('#motion');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const mobile = matchMedia('(max-width: 760px)');
   const density = ' .:-=+*#%@';
   const palette = [
-    '#244746', '#305b56', '#3b7065', '#478678',
-    '#589f8b', '#6bb8a1', '#80d0b6', '#a1eace',
+    '#232323', '#343434', '#464646', '#5a5a5a',
+    '#737373', '#8a8a8a', '#a3a3a3', '#c4c4c4',
   ];
   const shoal = [
     { x: .753, y: .406, scale: 1, phase: .7, depth: 1 },
@@ -22,8 +21,6 @@
   let frame = 0;
   let previous;
   let time = 0;
-  let running = !reducedMotion.matches;
-  let sceneVisible = true;
   let ink;
 
   function stamp(glyph, x, y, shade) {
@@ -42,9 +39,9 @@
     const drift = Math.sin(time * .37 + fish.phase);
     const centerX = (compact ? [.51, .82, .18, .15][index] : fish.x) * width
       + drift * (index ? 12 : 22);
-    const centerY = (compact ? [165, 128, 247, 130][index] : fish.y * height)
+    const centerY = (compact ? [.33, .26, .59, .27][index] : fish.y) * height
       + Math.cos(time * .55 + fish.phase) * (index ? 12 : 19);
-    const unit = Math.min(width * (compact ? .56 : .36), height * .56, 490) * fish.scale;
+    const unit = Math.min(width * (compact ? .56 : .36), height * (compact ? .63 : .56), 490) * fish.scale;
     const fontSize = Math.max(7, Math.min(13, unit / 31));
     context.font = `${fontSize}px "DejaVu Sans Mono", monospace`;
     const cellX = fontSize * .66;
@@ -146,27 +143,14 @@
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     previous = undefined;
-    if (running && sceneVisible && !document.hidden) frame = requestAnimationFrame(tick);
-    button.textContent = running ? 'Pausar animación' : 'Reanudar animación';
+    if (!reducedMotion.matches && !document.hidden) {
+      frame = requestAnimationFrame(tick);
+    }
   }
 
-  button.addEventListener('click', () => {
-    running = !running;
-    sync();
-  });
-  reducedMotion.addEventListener('change', (event) => {
-    running = !event.matches;
-    sync();
-  });
+  reducedMotion.addEventListener('change', sync);
   document.addEventListener('visibilitychange', sync);
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(([entry]) => {
-      sceneVisible = entry.isIntersecting;
-      sync();
-    }).observe(document.querySelector('#inicio'));
-  }
   new ResizeObserver(resize).observe(canvas);
   resize();
-  button.hidden = false;
   sync();
 })();

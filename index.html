@@ -7,19 +7,24 @@
   <meta name="theme-color" content="#000000">
   <title>Tomás Chacana Cuadra</title>
   <link rel="icon" href="./icon.svg?v=2" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=2">
-  <script src="./ocean.js?v=2" defer></script>
+  <link rel="stylesheet" href="./style.css?v=3">
+  <script src="./ocean.js?v=3" defer></script>
 </head>
 <body>
   <canvas id="ocean" aria-hidden="true"></canvas>
   <main aria-label="Currículum de Tomás Chacana Cuadra">
-    <p>Soy Tomás Chacana Cuadra. Desde 2023 estudio Ingeniería Civil Telemática en la Universidad Técnica Federico Santa María, Casa Central, Valparaíso. Estoy en cuarto año. Mi formación incluye redes de computadores, sistemas operativos, bases de datos e ingeniería de software.</p>
+    <p>Soy Tomás Chacana Cuadra. Desde 2023 estudio <button class="degree-toggle" type="button" aria-expanded="false" aria-controls="telematica">Ingeniería Civil Telemática<span aria-hidden="true"> +</span></button> en la Universidad Técnica Federico Santa María, Casa Central, Valparaíso. Estoy en cuarto año. Mi formación incluye redes de computadores, sistemas operativos, bases de datos e ingeniería de software.</p>
+
+    <div class="degree-panel" id="telematica" hidden>
+      <p>La telemática conecta redes, software y telecomunicaciones. En la USM, la carrera forma para diseñar, integrar y administrar redes y servicios digitales en infraestructura propia o en la nube. También abarca el desarrollo de aplicaciones y la ingeniería de datos, con énfasis en ciberseguridad, disponibilidad y calidad de servicio.</p>
+      <a href="https://usm.cl/admision/carreras/ingenieria-civil-telematica/">Ver la carrera en la USM <span aria-hidden="true">↗</span></a>
+    </div>
 
     <p>Entre enero y julio de 2026 hice mi práctica de automatización de procesos en Effice (Documentos Digitales SpA). Participé en el desarrollo de Compra Ágil, un sistema que extrae requisitos de licitaciones públicas desde documentos y planillas, valida productos y cantidades, y calcula costos de productos gráficos según reglas de cotización. Colaboré en la integración con Rocketbot Studio y el registro de resultados en Excel. También contribuí a incorporar pruebas automatizadas y registros por ítem.</p>
 
     <p>Trabajo con Excel, Python, Java, C, C++, SQL, Linux y Bash. Tengo formación en programación orientada a objetos, estructuras de datos y algoritmos, UML, bases de datos relacionales, configuración y diagnóstico de redes, virtualización y principios de ciberseguridad. Mi nivel de inglés es avanzado.</p>
 
-    <p class="links"><a href="mailto:tomas.chacana.c@gmail.com">Correo</a> / <a href="https://github.com/TomasChac">GitHub</a></p>
+    <p class="links"><a href="mailto:tomas.chacana.c@gmail.com">Correo</a></p>
   </main>
 </body>
 </html>

@@ -1,6 +1,27 @@
 (() => {
   const canvas = document.querySelector('#ocean');
   const context = canvas.getContext('2d');
+  const trigger = document.querySelector('.degree-toggle');
+  const panel = document.querySelector('#telematica');
+  let networkOpen = false;
+
+  function setNetwork(open) {
+    networkOpen = open;
+    trigger.setAttribute('aria-expanded', String(open));
+    trigger.querySelector('span').textContent = open ? ' −' : ' +';
+    panel.hidden = !open;
+    if (context && reducedMotion.matches) {
+      blend = Number(open);
+      render();
+    }
+  }
+
+  trigger.addEventListener('click', () => setNetwork(!networkOpen));
+  panel.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    setNetwork(false);
+    trigger.focus();
+  });
   if (!context) return;
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -22,6 +43,33 @@
   let previous;
   let time = 0;
   let ink;
+  let blend = 0;
+  const cursor = { x: 0, y: 0, targetX: 0, targetY: 0, strength: 0, targetStrength: 0 };
+
+  window.addEventListener('pointermove', (event) => {
+    if (event.pointerType !== 'mouse' || reducedMotion.matches) return;
+    const bounds = canvas.getBoundingClientRect();
+    cursor.targetX = event.clientX - bounds.left;
+    cursor.targetY = event.clientY - bounds.top;
+    if (cursor.strength < .01) {
+      cursor.x = cursor.targetX;
+      cursor.y = cursor.targetY;
+    }
+    cursor.targetStrength = 1;
+  }, { passive: true });
+
+  document.documentElement.addEventListener('pointerleave', () => {
+    cursor.targetStrength = 0;
+  });
+  window.addEventListener('blur', () => {
+    cursor.targetStrength = 0;
+  });
+
+  function flow(x, y, reach) {
+    const dx = x - cursor.x;
+    const dy = y - cursor.y;
+    return cursor.strength * Math.exp(-(dx * dx + dy * dy) / (reach * reach));
+  }
 
   function stamp(glyph, x, y, shade) {
     const color = palette[Math.max(0, Math.min(palette.length - 1, shade))];
@@ -29,7 +77,8 @@
       context.fillStyle = color;
       ink = color;
     }
-    context.fillText(glyph, x, y);
+    const weight = flow(x, y, 115) * .095;
+    context.fillText(glyph, x + (x - cursor.x) * weight, y + (y - cursor.y) * weight);
   }
 
   function jellyfish(fish, index) {
@@ -106,6 +155,51 @@
     };
   });
 
+  function drawNetwork() {
+    const compact = mobile.matches;
+    const centerX = width * (compact ? .5 : .765);
+    const centerY = height * .48;
+    const span = Math.min(width * (compact ? .80 : .42), height * 1.25, 610);
+    const tilt = Math.sin(time * .35) * .11 + cursor.strength
+      * Math.max(-.35, Math.min(.35, (cursor.x - centerX) / width)) * .32;
+    const columns = 18;
+    const rows = 12;
+    const point = (u, v) => {
+      const wave = Math.sin(u * 6 - time * 1.1) * Math.cos(v * 5 + time * .65);
+      const scale = 1 + v * .40;
+      return [
+        centerX + (u * scale + v * tilt) * span,
+        centerY + (v * .53 + wave * .042 + u * tilt) * span,
+      ];
+    };
+
+    context.font = '11px "DejaVu Sans Mono", monospace';
+    for (let row = 0; row <= rows; row++) {
+      for (let col = 0; col <= columns; col++) {
+        const u = col / columns - .5;
+        const v = row / rows - .5;
+        const [x, y] = point(u, v);
+        const local = flow(x, y, 130);
+        const packet = Math.sin(time * 2.4 + row * .58 - col * .36);
+        const edge = 1 - .5 * Math.max(Math.abs(u), Math.abs(v));
+        const shade = Math.round(edge * (3 + (packet > .92 ? 3 : 0)) + local * 2);
+        stamp(packet > .92 ? '*' : '+', x, y, shade);
+
+        if (col < columns) {
+          for (let step = 1; step <= 2; step++) {
+            const [sx, sy] = point(u + step / (columns * 3), v);
+            stamp(packet > .93 ? '=' : '-', sx, sy, Math.max(0, shade - 2));
+          }
+        }
+        if (row < rows) {
+          const [sx, sy] = point(u, v + .5 / rows);
+          const glyph = v > .06 && Math.abs(u) > .23 ? (u < 0 ? '/' : '\\') : ':';
+          stamp(glyph, sx, sy, Math.max(0, shade - 2));
+        }
+      }
+    }
+  }
+
   function render() {
     context.clearRect(0, 0, width, height);
     context.font = '10px "DejaVu Sans Mono", monospace';
@@ -114,9 +208,17 @@
       const x = particle.x * width + Math.sin(time * .45 + index) * 5;
       stamp(index % 21 === 0 ? '+' : index % 9 === 0 ? ':' : '.', x, y, index % 11 === 0 ? 2 : 0);
     });
-    for (let index = shoal.length - 1; index >= 0; index--) {
-      jellyfish(shoal[index], index);
+    if (blend < .995) {
+      context.globalAlpha = 1 - blend;
+      for (let index = shoal.length - 1; index >= 0; index--) {
+        jellyfish(shoal[index], index);
+      }
     }
+    if (blend > .005) {
+      context.globalAlpha = blend;
+      drawNetwork();
+    }
+    context.globalAlpha = 1;
   }
 
   function resize() {
@@ -133,8 +235,14 @@
   }
 
   function tick(now) {
-    if (previous !== undefined) time += Math.min((now - previous) / 1000, .05);
+    const elapsed = previous === undefined ? 0 : Math.min((now - previous) / 1000, .05);
+    const ease = 1 - Math.exp(-elapsed * 8);
+    time += elapsed;
     previous = now;
+    blend += (Number(networkOpen) - blend) * ease;
+    cursor.x += (cursor.targetX - cursor.x) * ease;
+    cursor.y += (cursor.targetY - cursor.y) * ease;
+    cursor.strength += (cursor.targetStrength - cursor.strength) * ease;
     render();
     frame = requestAnimationFrame(tick);
   }
@@ -143,7 +251,11 @@
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     previous = undefined;
-    if (!reducedMotion.matches && !document.hidden) {
+    if (reducedMotion.matches) {
+      cursor.strength = cursor.targetStrength = 0;
+      blend = Number(networkOpen);
+      render();
+    } else if (!document.hidden) {
       frame = requestAnimationFrame(tick);
     }
   }
